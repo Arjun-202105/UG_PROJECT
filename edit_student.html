@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Student</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>🎓 Attendance System</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/register">Register</a></li>
+                <li><a href="/manage_students" class="active">Manage Students</a></li>
+                <li><a href="/view_attendance">View Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>✏️ Edit Student Information</h1>
+            <p>Update student details and photo</p>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="loading-section" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading student data...</p>
+        </div>
+
+        <div class="edit-container" id="editContainer" style="display: none;">
+            
+            <!-- Student Info Card -->
+            <div class="student-info-card">
+                <div class="info-header">
+                    <h3>Current Student Information</h3>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>Roll Number:</strong>
+                        <span id="currentRollNumber">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Name:</strong>
+                        <span id="currentName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Department:</strong>
+                        <span id="currentDepartment">-</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>Registered Date:</strong>
+                        <span id="currentRegisteredDate">-</span>
+                    </div>
+                </div>
+                <div class="current-photo-section">
+                    <h4>Current Photo:</h4>
+                    <img id="currentPhoto" src="" alt="Student Photo" class="current-student-photo">
+                </div>
+            </div>
+
+            <!-- Edit Form -->
+            <form id="editForm" class="edit-form">
+                <input type="hidden" id="studentId" name="student_id">
+
+                <!-- Personal Details Section -->
+                <div class="form-section">
+                    <h3>Update Personal Details</h3>
+                    
+                    <div class="form-group">
+                        <label for="editRollNumber">Roll Number *</label>
+                        <input type="text" id="editRollNumber" name="roll_number" required 
+                               placeholder="e.g., 2024001">
+                        <small>This will be updated</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editName">Full Name *</label>
+                        <input type="text" id="editName" name="name" required 
+                               placeholder="e.g., John Doe">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editDepartment">Department *</label>
+                        <select id="editDepartment" name="department" required>
+                            <option value="">Select Department</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Electronics">Electronics</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Civil">Civil</option>
+                            <option value="Electrical">Electrical</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editEmail">Email (Optional)</label>
+                        <input type="email" id="editEmail" name="email" 
+                               placeholder="e.g., john@example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPhone">Phone Number (Optional)</label>
+                        <input type="tel" id="editPhone" name="phone" 
+                               placeholder="e.g., 9876543210">
+                    </div>
+                </div>
+
+                <!-- Photo Update Section -->
+                <div class="form-section">
+                    <h3>Update Photo (Optional)</h3>
+                    <p class="help-text">
+                        Leave blank to keep current photo. Capture new photo to update face recognition data.
+                    </p>
+                    
+                    <!-- Webcam Container -->
+                    <div class="camera-container">
+                        <video id="video" autoplay style="display: none;"></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <img id="newPhoto" style="display: none;">
+                        <div id="photoPlaceholder" class="photo-placeholder">
+                            <p>📷 No new photo captured</p>
+                            <p class="small-text">Click "Start Camera" to update photo</p>
+                        </div>
+                    </div>
+
+                    <!-- Camera Controls -->
+                    <div class="camera-controls">
+                        <button type="button" class="btn btn-primary" onclick="startCamera()">
+                            📷 Start Camera
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="capturePhoto()">
+                            📸 Capture New Photo
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="retakePhoto()">
+                            🔄 Retake Photo
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="keepOldPhoto()">
+                            ⏩ Keep Old Photo
+                        </button>
+                    </div>
+
+                    <div id="cameraStatus" class="status-message"></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success btn-large">
+                        ✅ Update Student
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-large" onclick="cancelEdit()">
+                        ❌ Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger btn-large" onclick="deleteStudent()">
+                        🗑️ Delete Student
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Attendance System | College Project</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // ============================================
+        // EDIT STUDENT JAVASCRIPT
+        // ============================================
+
+        // Global variables
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let newPhoto = document.getElementById('newPhoto');
+        let capturedPhoto = null;
+        let stream = null;
+        let studentData = null;
+
+        /**
+         * Load student data on page load
+         */
+        window.addEventListener('DOMContentLoaded', function() {
+            // Get student ID from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentId = urlParams.get('id');
+            
+            if (!studentId) {
+                alert('No student ID provided!');
+                window.location.href = '/manage_students';
+                return;
+            }
+
+            loadStudentData(studentId);
+        });
+
+        /**
+         * Load student data from database
+         */
+        function loadStudentData(studentId) {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            
+            fetch(`/api/get_student/${studentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        studentData = data.data;
+                        displayStudentData(studentData);
+                        populateForm(studentData);
+                        
+                        document.getElementById('loadingIndicator').style.display = 'none';
+                        document.getElementById('editContainer').style.display = 'block';
+                    } else {
+                        alert('Error: ' + data.message);
+                        window.location.href = '/manage_students';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load student data');
+                    window.location.href = '/manage_students';
+                });
+        }
+
+        /**
+         * Display current student data
+         */
+        function displayStudentData(student) {
+            document.getElementById('currentRollNumber').textContent = student.roll_number;
+            document.getElementById('currentName').textContent = student.name;
+            document.getElementById('currentDepartment').textContent = student.department;
+            document.getElementById('currentRegisteredDate').textContent = 
+                new Date(student.registered_date).toLocaleDateString();
+            
+            // Display current photo
+            if (student.photo_path) {
+                document.getElementById('currentPhoto').src = '/' + student.photo_path;
+            }
+        }
+
+        /**
+         * Populate form with current data
+         */
+        function populateForm(student) {
+            document.getElementById('studentId').value = student.id;
+            document.getElementById('editRollNumber').value = student.roll_number;
+            document.getElementById('editName').value = student.name;
+            document.getElementById('editDepartment').value = student.department;
+            document.getElementById('editEmail').value = student.email || '';
+            document.getElementById('editPhone').value = student.phone || '';
+        }
+
+        /**
+         * Start camera for new photo
+         */
+        function startCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640, 
+                        height: 480 
+                    } 
+                })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                    video.style.display = 'block';
+                    newPhoto.style.display = 'none';
+                    document.getElementById('photoPlaceholder').style.display = 'none';
+                    
+                    showStatus('cameraStatus', 'Camera started! Position your face and click Capture.', 'success');
+                })
+                .catch(function(error) {
+                    console.error('Camera error:', error);
+                    showStatus('cameraStatus', 'Error accessing camera. Please allow camera permission.', 'error');
+                });
+            } else {
+                showStatus('cameraStatus', 'Your browser does not support camera access.', 'error');
+            }
+        }
+
+        /**
+         * Capture new photo from video stream
+         */
+        function capturePhoto() {
+            if (!stream) {
+                showStatus('cameraStatus', 'Please start camera first!', 'error');
+                return;
+            }
+
+            // Set canvas size to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw current video frame on canvas
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert canvas to base64 image data
+            capturedPhoto = canvas.toDataURL('image/jpeg');
+
+            // Display captured photo
+            newPhoto.src = capturedPhoto;
+            newPhoto.style.display = 'block';
+            video.style.display = 'none';
+            document.getElementById('photoPlaceholder').style.display = 'none';
+
+            // Stop camera
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            showStatus('cameraStatus', '✅ New photo captured successfully!', 'success');
+        }
+
+        /**
+         * Retake photo
+         */
+        function retakePhoto() {
+            capturedPhoto = null;
+            newPhoto.style.display = 'none';
+            video.style.display = 'block';
+            document.getElementById('photoPlaceholder').style.display = 'none';
+            startCamera();
+        }
+
+        /**
+         * Keep old photo (don't update)
+         */
+        function keepOldPhoto() {
+            capturedPhoto = null;
+            newPhoto.style.display = 'none';
+            video.style.display = 'none';
+            document.getElementById('photoPlaceholder').style.display = 'flex';
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            showStatus('cameraStatus', 'Old photo will be kept.', 'info');
+        }
+
+        /**
+         * Show status message
+         */
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'status-message status-' + type;
+            element.style.display = 'block';
+        }
+
+        /**
+         * Cancel edit and go back
+         */
+        function cancelEdit() {
+            if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+                window.location.href = '/manage_students';
+            }
+        }
+
+        /**
+         * Delete student
+         */
+        function deleteStudent() {
+            const studentName = document.getElementById('currentName').textContent;
+            const studentId = document.getElementById('studentId').value;
+            
+            if (!confirm(`Are you sure you want to DELETE ${studentName}?\n\nThis will:\n- Remove student record\n- Delete all attendance records\n- Remove face recognition data\n\nThis action CANNOT be undone!`)) {
+                return;
+            }
+
+            // Second confirmation
+            if (!confirm('FINAL CONFIRMATION: Delete this student permanently?')) {
+                return;
+            }
+
+            // Show loading
+            const deleteBtn = event.target;
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = '⏳ Deleting...';
+
+            // Send delete request
+            fetch(`/api/delete_student/${studentId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    window.location.href = '/manage_students';
+                } else {
+                    alert('❌ ' + data.message);
+                    deleteBtn.disabled = false;
+                    deleteBtn.textContent = '🗑️ Delete Student';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Error deleting student');
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = '🗑️ Delete Student';
+            });
+        }
+
+        /**
+         * Form submission handler
+         */
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Get form data
+            const formData = new FormData();
+            formData.append('student_id', document.getElementById('studentId').value);
+            formData.append('roll_number', document.getElementById('editRollNumber').value);
+            formData.append('name', document.getElementById('editName').value);
+            formData.append('department', document.getElementById('editDepartment').value);
+            formData.append('email', document.getElementById('editEmail').value);
+            formData.append('phone', document.getElementById('editPhone').value);
+            
+            // Add new photo if captured
+            if (capturedPhoto) {
+                formData.append('photo', capturedPhoto);
+            }
+
+            // Show loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Updating...';
+
+            // Send update request
+            fetch('/api/update_student', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    window.location.href = '/manage_students';
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Error updating student');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '✅ Update Student';
+            });
+        });
+
+        // Stop camera when page is closed
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+
+    <style>
+        .loading-section {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .edit-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .student-info-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            border-left: 5px solid #667eea;
+        }
+
+        .info-header h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .info-item strong {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .info-item span {
+            display: block;
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .current-photo-section {
+            margin-top: 25px;
+        }
+
+        .current-photo-section h4 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .current-student-photo {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 3px solid #667eea;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .photo-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            min-height: 200px;
+        }
+
+        .photo-placeholder p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .photo-placeholder .small-text {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .small-text {
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</body>
+</html>

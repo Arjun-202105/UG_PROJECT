@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System - Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- 
+        url_for() is a Flask function that generates the correct URL
+        It finds files in the 'static' folder automatically
+    -->
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>🎓 Attendance System</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/" class="active">Home</a></li>
+                <li><a href="/register">Register</a></li>
+                <li><a href="/view_attendance">View Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Welcome to Automated Attendance System</h1>
+            <p>Mark attendance using Face Recognition or Fingerprint Scanner</p>
+        </section>
+
+        <!-- Feature Cards -->
+        <section class="features">
+            <div class="feature-grid">
+                
+                <!-- Card 2: Face Attendance -->
+                <div class="feature-card">
+                    <div class="card-icon">📸</div>
+                    <h3>Face Recognition</h3>
+                    <p>Mark attendance using face recognition technology. Quick and contactless.</p>
+                    <a href="/face_attendance" class="btn btn-primary">Start Face Attendance</a>
+                </div>
+
+                <!-- Card 3: Fingerprint Attendance -->
+                <div class="feature-card">
+                    <div class="card-icon">👆</div>
+                    <h3>Fingerprint Scanner</h3>
+                    <p>Mark attendance using fingerprint biometric scanner. Secure and accurate.</p>
+                    <a href="/fingerprint_attendance" class="btn btn-primary">Start Fingerprint Attendance</a>
+                </div>
+
+                <!-- Card 1: Register Student -->
+                <div class="feature-card">
+                    <div class="card-icon">✍️</div>
+                    <h3>Register Student</h3>
+                    <p>Register new students with their details, photo, and biometric data.</p>
+                    <a href="/register" class="btn btn-secondary">Register New Student</a>
+                </div>
+
+                <!-- Card 4: Manage Students -->
+                <div class="feature-card">
+                    <div class="card-icon">👥</div>
+                    <h3>Manage Students</h3>
+                    <p>View, edit, and manage all registered students in the system.</p>
+                    <a href="/manage_students" class="btn btn-secondary">Manage Students</a>
+                </div>
+
+                <!-- Card 5: View Records -->
+                <div class="feature-card">
+                    <div class="card-icon">📊</div>
+                    <h3>View Attendance</h3>
+                    <p>View all attendance records with filters for date, student, and department.</p>
+                    <a href="/view_attendance" class="btn btn-secondary">View Records</a>
+                </div>
+
+                <!-- Card 6: Reports -->
+                <div class="feature-card">
+                    <div class="card-icon">📈</div>
+                    <h3>Generate Reports</h3>
+                    <p>Generate and download attendance reports in Excel format.</p>
+                    <a href="/reports" class="btn btn-secondary">Generate Report</a>
+                </div>
+
+                <!-- Card 7: System Info -->
+                <div class="feature-card">
+                    <div class="card-icon">ℹ️</div>
+                    <h3>System Information</h3>
+                    <p>Learn more about the system features and how to use them.</p>
+                    <button class="btn btn-info" onclick="showInfo()">Learn More</button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Statistics Section (Optional - shows some numbers) -->
+        <section class="statistics">
+            <h2>System Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number" id="totalStudents">0</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="todayAttendance">0</div>
+                    <div class="stat-label">Today's Attendance</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="totalDepartments">0</div>
+                    <div class="stat-label">Departments</div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Attendance System | College Project</p>
+    </footer>
+
+    <!-- Information Modal (Popup) -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeInfo()">&times;</span>
+            <h2>About This System</h2>
+            <div class="info-content">
+                <h3>Features:</h3>
+                <ul>
+                    <li>✅ Face Recognition using AI</li>
+                    <li>✅ Fingerprint Biometric Scanning</li>
+                    <li>✅ Real-time Attendance Marking</li>
+                    <li>✅ Student Registration Management</li>
+                    <li>✅ Attendance Reports & Analytics</li>
+                    <li>✅ Export to Excel</li>
+                </ul>
+                
+                <h3>How to Use:</h3>
+                <ol>
+                    <li><strong>Register:</strong> First, register students with their photo</li>
+                    <li><strong>Attend:</strong> Students can mark attendance using face or fingerprint</li>
+                    <li><strong>View:</strong> Admin can view all attendance records</li>
+                    <li><strong>Report:</strong> Generate and download reports</li>
+                </ol>
+
+                <h3>Technologies Used:</h3>
+                <p>Frontend: HTML, CSS, JavaScript<br>
+                Backend: Python, Flask<br>
+                Face Recognition: OpenCV, face_recognition library<br>
+                Database: SQLite</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Function to show information modal
+        function showInfo() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        // Function to close information modal
+        function closeInfo() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Load statistics when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            loadStatistics();
+        });
+
+        // Function to load system statistics
+        function loadStatistics() {
+            // Get total students
+            fetch('/api/get_students')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('totalStudents').textContent = data.data.length;
+                    }
+                });
+
+            // Get today's attendance
+            const today = new Date().toISOString().split('T')[0];
+            fetch(`/api/get_attendance?start_date=${today}&end_date=${today}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('todayAttendance').textContent = data.data.length;
+                    }
+                });
+
+            // Get departments
+            fetch('/api/get_departments')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('totalDepartments').textContent = data.data.length;
+                    }
+                });
+        }
+    </script>
+</body>
+</html>

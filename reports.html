@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>🎓 Attendance System</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/register">Register</a></li>
+                <li><a href="/view_attendance">View Attendance</a></li>
+                <li><a href="/reports" class="active">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>📈 Reports & Analytics</h1>
+            <p>Generate and download attendance reports</p>
+        </div>
+
+        <!-- Report Generation Section -->
+        <div class="report-section">
+            <h2>📊 Generate Report</h2>
+            
+            <div class="report-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reportStartDate">Start Date</label>
+                        <input type="date" id="reportStartDate" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reportEndDate">End Date</label>
+                        <input type="date" id="reportEndDate" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reportDepartment">Department</label>
+                        <select id="reportDepartment" class="form-control">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reportFormat">Format</label>
+                        <select id="reportFormat" class="form-control">
+                            <option value="xlsx">Excel (.xlsx)</option>
+                            <option value="csv">CSV (.csv)</option>
+                            <option value="pdf">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="report-actions">
+                    <button class="btn btn-success btn-large" onclick="generateReport()">
+                        📥 Download Report
+                    </button>
+                    <button class="btn btn-primary" onclick="previewReport()">
+                        👁️ Preview Report
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Reports Section -->
+        <div class="quick-reports">
+            <h2>⚡ Quick Reports</h2>
+            <div class="quick-reports-grid">
+                <div class="quick-report-card" onclick="downloadTodayReport()">
+                    <div class="card-icon">📅</div>
+                    <h3>Today's Attendance</h3>
+                    <p>Download today's complete attendance</p>
+                    <button class="btn btn-sm btn-primary">Download</button>
+                </div>
+
+                <div class="quick-report-card" onclick="downloadWeekReport()">
+                    <div class="card-icon">📆</div>
+                    <h3>This Week</h3>
+                    <p>Download this week's attendance</p>
+                    <button class="btn btn-sm btn-primary">Download</button>
+                </div>
+
+                <div class="quick-report-card" onclick="downloadMonthReport()">
+                    <div class="card-icon">🗓️</div>
+                    <h3>This Month</h3>
+                    <p>Download current month's attendance</p>
+                    <button class="btn btn-sm btn-primary">Download</button>
+                </div>
+
+                <div class="quick-report-card" onclick="downloadAllReport()">
+                    <div class="card-icon">📊</div>
+                    <h3>Complete Data</h3>
+                    <p>Download all attendance records</p>
+                    <button class="btn btn-sm btn-primary">Download</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div class="analytics-section">
+            <h2>📈 Attendance Analytics</h2>
+            
+            <div class="analytics-grid">
+                <!-- Overall Statistics -->
+                <div class="analytics-card">
+                    <h3>Overall Statistics</h3>
+                    <div class="stats-list">
+                        <div class="stat-row">
+                            <span class="stat-label">Total Students:</span>
+                            <span class="stat-value" id="totalStudents">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total Attendance Records:</span>
+                            <span class="stat-value" id="totalAttendance">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Average Daily Attendance:</span>
+                            <span class="stat-value" id="avgAttendance">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Most Active Day:</span>
+                            <span class="stat-value" id="mostActiveDay">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Method Breakdown -->
+                <div class="analytics-card">
+                    <h3>Attendance by Method</h3>
+                    <div class="method-stats">
+                        <div class="method-item">
+                            <div class="method-icon">📸</div>
+                            <div class="method-info">
+                                <div class="method-name">Face Recognition</div>
+                                <div class="method-count" id="faceMethodCount">0</div>
+                                <div class="method-percent" id="faceMethodPercent">0%</div>
+                            </div>
+                        </div>
+                        <div class="method-item">
+                            <div class="method-icon">👆</div>
+                            <div class="method-info">
+                                <div class="method-name">Fingerprint</div>
+                                <div class="method-count" id="fingerprintMethodCount">0</div>
+                                <div class="method-percent" id="fingerprintMethodPercent">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department-wise Attendance -->
+                <div class="analytics-card">
+                    <h3>Department-wise Attendance</h3>
+                    <div id="departmentStats" class="department-stats">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="analytics-card">
+                    <h3>Recent Activity</h3>
+                    <div id="recentActivity" class="activity-list">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Preview Modal -->
+        <div id="previewModal" class="modal">
+            <div class="modal-content modal-large">
+                <span class="close" onclick="closePreview()">&times;</span>
+                <h2>Report Preview</h2>
+                <div id="previewContent" class="preview-content">
+                    <!-- Preview will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Attendance System | College Project</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // ============================================
+        // REPORTS & ANALYTICS JAVASCRIPT
+        // ============================================
+
+        /**
+         * Initialize page
+         */
+        window.addEventListener('DOMContentLoaded', function() {
+            // Set default dates
+            const today = new Date();
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('reportStartDate').value = formatDate(monthAgo);
+            document.getElementById('reportEndDate').value = formatDate(today);
+
+            // Load data
+            loadDepartments();
+            loadAnalytics();
+        });
+
+        /**
+         * Format date
+         */
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        /**
+         * Load departments
+         */
+        function loadDepartments() {
+            fetch('/api/get_departments')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const select = document.getElementById('reportDepartment');
+                        data.data.forEach(dept => {
+                            const option = document.createElement('option');
+                            option.value = dept;
+                            option.textContent = dept;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+        }
+
+        /**
+         * Generate and download report
+         */
+        function generateReport() {
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const department = document.getElementById('reportDepartment').value;
+            const format = document.getElementById('reportFormat').value;
+
+            if (!startDate || !endDate) {
+                alert('Please select start and end dates');
+                return;
+            }
+
+            let url = `/api/export_attendance?start_date=${startDate}&end_date=${endDate}`;
+            if (department) url += `&department=${department}`;
+
+            // Download file
+            window.location.href = url;
+            
+            alert('✅ Report generated! Download will start automatically.');
+        }
+
+        /**
+         * Preview report
+         */
+        function previewReport() {
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            const department = document.getElementById('reportDepartment').value;
+
+            let url = `/api/get_attendance?start_date=${startDate}&end_date=${endDate}`;
+            if (department) url += `&department=${department}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayPreview(data.data, startDate, endDate);
+                    }
+                });
+        }
+
+        /**
+         * Display report preview
+         */
+        function displayPreview(records, startDate, endDate) {
+            const previewContent = document.getElementById('previewContent');
+            
+            let html = `
+                <div class="preview-header">
+                    <h3>Attendance Report</h3>
+                    <p>Period: ${startDate} to ${endDate}</p>
+                    <p>Total Records: ${records.length}</p>
+                </div>
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Roll Number</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Method</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            records.forEach(record => {
+                html += `
+                    <tr>
+                        <td>${record.date}</td>
+                        <td>${record.time}</td>
+                        <td>${record.roll_number}</td>
+                        <td>${record.name}</td>
+                        <td>${record.department}</td>
+                        <td>${record.method}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            
+            previewContent.innerHTML = html;
+            document.getElementById('previewModal').style.display = 'block';
+        }
+
+        /**
+         * Close preview modal
+         */
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+        }
+
+        /**
+         * Quick report downloads
+         */
+        function downloadTodayReport() {
+            const today = formatDate(new Date());
+            window.location.href = `/api/export_attendance?start_date=${today}&end_date=${today}`;
+        }
+
+        function downloadWeekReport() {
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            window.location.href = `/api/export_attendance?start_date=${formatDate(weekAgo)}&end_date=${formatDate(today)}`;
+        }
+
+        function downloadMonthReport() {
+            const today = new Date();
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            window.location.href = `/api/export_attendance?start_date=${formatDate(monthAgo)}&end_date=${formatDate(today)}`;
+        }
+
+        function downloadAllReport() {
+            const today = new Date();
+            const longAgo = new Date('2000-01-01');
+            window.location.href = `/api/export_attendance?start_date=${formatDate(longAgo)}&end_date=${formatDate(today)}`;
+        }
+
+        /**
+         * Load analytics data
+         */
+        function loadAnalytics() {
+            // Load students count
+            fetch('/api/get_students')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('totalStudents').textContent = data.data.length;
+                    }
+                });
+
+            // Load attendance data
+            const today = formatDate(new Date());
+            const longAgo = '2000-01-01';
+            
+            fetch(`/api/get_attendance?start_date=${longAgo}&end_date=${today}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        analyzeData(data.data);
+                    }
+                });
+        }
+
+        /**
+         * Analyze attendance data
+         */
+        function analyzeData(records) {
+            // Total attendance
+            document.getElementById('totalAttendance').textContent = records.length;
+
+            // Count by method
+            const faceCount = records.filter(r => r.method === 'face').length;
+            const fingerprintCount = records.filter(r => r.method === 'fingerprint').length;
+            const total = records.length;
+
+            document.getElementById('faceMethodCount').textContent = faceCount;
+            document.getElementById('fingerprintMethodCount').textContent = fingerprintCount;
+            
+            document.getElementById('faceMethodPercent').textContent = 
+                total > 0 ? ((faceCount / total) * 100).toFixed(1) + '%' : '0%';
+            document.getElementById('fingerprintMethodPercent').textContent = 
+                total > 0 ? ((fingerprintCount / total) * 100).toFixed(1) + '%' : '0%';
+
+            // Department-wise
+            const deptCounts = {};
+            records.forEach(r => {
+                deptCounts[r.department] = (deptCounts[r.department] || 0) + 1;
+            });
+
+            let deptHTML = '';
+            for (const [dept, count] of Object.entries(deptCounts)) {
+                const percent = ((count / total) * 100).toFixed(1);
+                deptHTML += `
+                    <div class="dept-item">
+                        <div class="dept-name">${dept}</div>
+                        <div class="dept-bar">
+                            <div class="dept-bar-fill" style="width: ${percent}%"></div>
+                        </div>
+                        <div class="dept-count">${count} (${percent}%)</div>
+                    </div>
+                `;
+            }
+            document.getElementById('departmentStats').innerHTML = deptHTML;
+
+            // Recent activity
+            const recent = records.slice(0, 10);
+            let activityHTML = '';
+            recent.forEach(r => {
+                activityHTML += `
+                    <div class="activity-item">
+                        <div class="activity-icon">${r.method === 'face' ? '📸' : '👆'}</div>
+                        <div class="activity-info">
+                            <div class="activity-name">${r.name}</div>
+                            <div class="activity-time">${r.date} ${r.time}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('recentActivity').innerHTML = activityHTML;
+
+            // Calculate average daily attendance
+            const dates = new Set(records.map(r => r.date));
+            const avgDaily = (records.length / dates.size).toFixed(1);
+            document.getElementById('avgAttendance').textContent = avgDaily;
+
+            // Most active day
+            const dayCounts = {};
+            records.forEach(r => {
+                dayCounts[r.date] = (dayCounts[r.date] || 0) + 1;
+            });
+            
+            let maxDay = null;
+            let maxCount = 0;
+            for (const [day, count] of Object.entries(dayCounts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    maxDay = day;
+                }
+            }
+            
+            document.getElementById('mostActiveDay').textContent = 
+                maxDay ? `${maxDay} (${maxCount} records)` : 'N/A';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('previewModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

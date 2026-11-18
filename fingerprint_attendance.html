@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fingerprint Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>🎓 Attendance System</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/register">Register</a></li>
+                <li><a href="/view_attendance">View Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>👆 Fingerprint Attendance</h1>
+            <p>Place your finger on the scanner to mark attendance</p>
+        </div>
+
+        <div class="attendance-container">
+            
+            <!-- Fingerprint Scanner Section -->
+            <div class="scanner-section">
+                
+                <!-- Fingerprint Animation -->
+                <div class="fingerprint-container">
+                    <div class="fingerprint-animation" id="fingerprintAnimation">
+                        <div class="fingerprint-icon">👆</div>
+                        <div class="scan-line"></div>
+                        <div class="scan-text">Ready to Scan</div>
+                    </div>
+                </div>
+
+                <!-- Scanner Status -->
+                <div class="scanner-status" id="scannerStatus">
+                    <div class="status-indicator">
+                        <span class="indicator-dot" id="statusDot"></span>
+                        <span id="statusText">Scanner Ready</span>
+                    </div>
+                </div>
+
+                <!-- Scanner Controls -->
+                <div class="scanner-controls">
+                    <button class="btn btn-primary btn-large" onclick="initScanner()">
+                        🔌 Connect Scanner
+                    </button>
+                    <button class="btn btn-success btn-large" onclick="startScanning()">
+                        🔍 Start Scanning
+                    </button>
+                    <button class="btn btn-warning" onclick="testMode()">
+                        🧪 Test Mode
+                    </button>
+                </div>
+
+                <div id="result" class="result-message"></div>
+
+            </div>
+
+            <!-- Info Section -->
+            <div class="info-section">
+                <div class="info-card">
+                    <h3>📊 Today's Stats</h3>
+                    <div class="stats-grid-small">
+                        <div class="stat-item">
+                            <div class="stat-value" id="todayCount">0</div>
+                            <div class="stat-label">Face</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="fingerprintCount">0</div>
+                            <div class="stat-label">Fingerprint</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>⏰ Current Time</h3>
+                    <div id="currentTime" class="time-display">--:--:--</div>
+                    <div id="currentDate" class="date-display"></div>
+                </div>
+
+                <div class="info-card">
+                    <h3>ℹ️ How to Use</h3>
+                    <ul class="instruction-list">
+                        <li>Connect fingerprint scanner</li>
+                        <li>Click "Start Scanning"</li>
+                        <li>Place finger on scanner</li>
+                        <li>Keep finger still until beep</li>
+                        <li>Wait for confirmation</li>
+                        <li>Remove finger</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3>🔧 Hardware Info</h3>
+                    <div class="hardware-info">
+                        <p><strong>Supported Scanners:</strong></p>
+                        <ul>
+                            <li>R305 Fingerprint Module</li>
+                            <li>ZKTeco USB Scanner</li>
+                            <li>Digital Persona Scanner</li>
+                        </ul>
+                        <p class="help-text">
+                            Make sure scanner drivers are installed
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Recent Attendance Table -->
+        <div class="recent-attendance">
+            <h2>Recently Marked (Fingerprint)</h2>
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Roll Number</th>
+                        <th>Name</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="recentTableBody">
+                    <tr>
+                        <td colspan="5" class="no-data">No fingerprint attendance yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Attendance System | College Project</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // ============================================
+        // FINGERPRINT ATTENDANCE JAVASCRIPT
+        // ============================================
+
+        let scannerConnected = false;
+        let scanning = false;
+
+        /**
+         * Initialize fingerprint scanner
+         * In real implementation, this would connect to hardware
+         */
+        function initScanner() {
+            updateStatus('Connecting to scanner...', 'info', 'connecting');
+            
+            // Simulate connection (in real app, connect to serial port)
+            setTimeout(() => {
+                scannerConnected = true;
+                updateStatus('Scanner connected!', 'success', 'connected');
+                showResult('✅ Fingerprint scanner ready', 'success');
+            }, 2000);
+        }
+
+        /**
+         * Start scanning for fingerprints
+         */
+        function startScanning() {
+            if (!scannerConnected) {
+                showResult('⚠️ Please connect scanner first!', 'error');
+                return;
+            }
+
+            scanning = true;
+            updateStatus('Place finger on scanner...', 'info', 'scanning');
+            startScanAnimation();
+            
+            showResult('👆 Waiting for fingerprint...', 'info');
+        }
+
+        /**
+         * Process fingerprint scan
+         * In real implementation, this receives data from hardware
+         */
+        function processScan(studentId) {
+            // Show processing
+            updateStatus('Processing...', 'info', 'processing');
+            showResult('⏳ Verifying fingerprint...', 'info');
+
+            // Send to backend
+            fetch('/api/mark_fingerprint_attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    student_id: studentId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                stopScanAnimation();
+                
+                if (data.success) {
+                    // Success
+                    updateStatus('Attendance marked!', 'success', 'success');
+                    showResult('✅ ' + data.message, 'success');
+                    addToRecentTable(data.student, data.time);
+                    updateTodayCount();
+                    
+                    // Reset after 3 seconds
+                    setTimeout(() => {
+                        updateStatus('Ready for next scan', 'info', 'ready');
+                        showResult('', 'info');
+                    }, 3000);
+                } else {
+                    // Failed
+                    updateStatus('Scan failed', 'error', 'error');
+                    showResult('❌ ' + data.message, 'error');
+                    
+                    setTimeout(() => {
+                        updateStatus('Ready to scan', 'info', 'ready');
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                stopScanAnimation();
+                updateStatus('Error occurred', 'error', 'error');
+                showResult('❌ Error marking attendance', 'error');
+            });
+        }
+
+        /**
+         * Test mode - simulates fingerprint scan
+         * Useful for testing without hardware
+         */
+        function testMode() {
+            if (!scannerConnected) {
+                initScanner();
+                setTimeout(() => {
+                    testModeScan();
+                }, 2500);
+            } else {
+                testModeScan();
+            }
+        }
+
+        function testModeScan() {
+            startScanning();
+            
+            // Simulate fingerprint detection after 2 seconds
+            setTimeout(() => {
+                // Prompt for student ID
+                const studentId = prompt('Enter Student ID for testing (or cancel to simulate unknown fingerprint):');
+                
+                if (studentId) {
+                    processScan(parseInt(studentId));
+                } else {
+                    stopScanAnimation();
+                    updateStatus('No match found', 'error', 'error');
+                    showResult('❌ Fingerprint not registered', 'error');
+                }
+            }, 2000);
+        }
+
+        /**
+         * Update scanner status
+         */
+        function updateStatus(text, type, state) {
+            const statusText = document.getElementById('statusText');
+            const statusDot = document.getElementById('statusDot');
+            
+            statusText.textContent = text;
+            statusDot.className = 'indicator-dot indicator-' + state;
+        }
+
+        /**
+         * Show result message
+         */
+        function showResult(message, type) {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = message;
+            resultElement.className = 'result-message result-' + type;
+            resultElement.style.display = message ? 'block' : 'none';
+        }
+
+        /**
+         * Start scan animation
+         */
+        function startScanAnimation() {
+            const animation = document.getElementById('fingerprintAnimation');
+            animation.classList.add('scanning');
+        }
+
+        /**
+         * Stop scan animation
+         */
+        function stopScanAnimation() {
+            const animation = document.getElementById('fingerprintAnimation');
+            animation.classList.remove('scanning');
+        }
+
+        /**
+         * Add to recent attendance table
+         */
+        function addToRecentTable(student, time) {
+            const tbody = document.getElementById('recentTableBody');
+            
+            // Remove "no data" row
+            const noDataRow = tbody.querySelector('.no-data');
+            if (noDataRow) {
+                noDataRow.parentElement.remove();
+            }
+
+            // Create new row
+            const row = document.createElement('tr');
+            row.className = 'fade-in';
+            row.innerHTML = `
+                <td>${time}</td>
+                <td>${student.roll_number}</td>
+                <td>${student.name}</td>
+                <td><span class="badge badge-info">Fingerprint</span></td>
+                <td><span class="badge badge-success">Present</span></td>
+            `;
+
+            tbody.insertBefore(row, tbody.firstChild);
+
+            // Keep only last 10
+            while (tbody.children.length > 10) {
+                tbody.removeChild(tbody.lastChild);
+            }
+        }
+
+        /**
+         * Update today's count
+         */
+        function updateTodayCount() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            fetch(`/api/get_attendance?start_date=${today}&end_date=${today}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let faceCount = 0;
+                        let fingerprintCount = 0;
+                        
+                        data.data.forEach(record => {
+                            if (record.method === 'face') faceCount++;
+                            if (record.method === 'fingerprint') fingerprintCount++;
+                        });
+                        
+                        document.getElementById('todayCount').textContent = faceCount;
+                        document.getElementById('fingerprintCount').textContent = fingerprintCount;
+                    }
+                });
+        }
+
+        /**
+         * Update clock
+         */
+        function updateClock() {
+            const now = new Date();
+            
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateString = now.toLocaleDateString('en-US', options);
+
+            document.getElementById('currentTime').textContent = timeString;
+            document.getElementById('currentDate').textContent = dateString;
+        }
+
+        /**
+         * Load recent attendance
+         */
+        function loadRecentAttendance() {
+            const today = new Date().toISOString().split('T')[0];
+            fetch(`/api/get_attendance?start_date=${today}&end_date=${today}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const fingerprintRecords = data.data.filter(r => r.method === 'fingerprint');
+                        
+                        if (fingerprintRecords.length > 0) {
+                            const tbody = document.getElementById('recentTableBody');
+                            tbody.innerHTML = '';
+                            
+                            fingerprintRecords.slice(0, 10).forEach(record => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${record.time}</td>
+                                    <td>${record.roll_number}</td>
+                                    <td>${record.name}</td>
+                                    <td><span class="badge badge-info">Fingerprint</span></td>
+                                    <td><span class="badge badge-success">Present</span></td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }
+                    }
+                });
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        window.addEventListener('DOMContentLoaded', function() {
+            updateTodayCount();
+            loadRecentAttendance();
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            loadRecentAttendance();
+            updateTodayCount();
+        }, 30000);
+    </script>
+</body>
+</html>

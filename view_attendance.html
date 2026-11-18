@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>🎓 Attendance System</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/register">Register</a></li>
+                <li><a href="/view_attendance" class="active">View Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>📊 View Attendance Records</h1>
+            <p>Filter and search attendance data</p>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <h3>🔍 Filters</h3>
+            <div class="filters-grid">
+                <div class="filter-item">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label for="studentFilter">Student</label>
+                    <select id="studentFilter" class="form-control">
+                        <option value="">All Students</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label for="departmentFilter">Department</label>
+                    <select id="departmentFilter" class="form-control">
+                        <option value="">All Departments</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label for="methodFilter">Method</label>
+                    <select id="methodFilter" class="form-control">
+                        <option value="">All Methods</option>
+                        <option value="face">Face Recognition</option>
+                        <option value="fingerprint">Fingerprint</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="applyFilters()">
+                        🔍 Apply Filters
+                    </button>
+                </div>
+
+                <div class="filter-item">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" onclick="resetFilters()">
+                        🔄 Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalRecords">0</div>
+                    <div class="stat-title">Total Records</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="uniqueStudents">0</div>
+                    <div class="stat-title">Unique Students</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📸</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="faceCount">0</div>
+                    <div class="stat-title">Face Recognition</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">👆</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="fingerprintCount">0</div>
+                    <div class="stat-title">Fingerprint</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="table-section">
+            <div class="table-header">
+                <h3>Attendance Records</h3>
+                <div class="table-actions">
+                    <input type="text" id="searchBox" placeholder="Search..." 
+                           class="search-box" onkeyup="searchTable()">
+                    <button class="btn btn-success" onclick="exportToExcel()">
+                        📥 Export Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="attendanceTable" class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">S.No</th>
+                            <th onclick="sortTable(1)">Date</th>
+                            <th onclick="sortTable(2)">Time</th>
+                            <th onclick="sortTable(3)">Roll Number</th>
+                            <th onclick="sortTable(4)">Name</th>
+                            <th onclick="sortTable(5)">Department</th>
+                            <th onclick="sortTable(6)">Method</th>
+                            <th onclick="sortTable(7)">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="8" class="no-data">
+                                <div class="loading">Loading data...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="pagination">
+                <!-- Pagination will be added by JavaScript -->
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Attendance System | College Project</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // ============================================
+        // VIEW ATTENDANCE JAVASCRIPT
+        // ============================================
+
+        let allRecords = [];
+        let filteredRecords = [];
+        let currentPage = 1;
+        const recordsPerPage = 20;
+
+        /**
+         * Initialize page
+         */
+        window.addEventListener('DOMContentLoaded', function() {
+            // Set default dates (last 7 days)
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('startDate').value = formatDate(weekAgo);
+            document.getElementById('endDate').value = formatDate(today);
+
+            // Load dropdown data
+            loadStudents();
+            loadDepartments();
+            
+            // Load attendance data
+            loadAttendance();
+        });
+
+        /**
+         * Format date to YYYY-MM-DD
+         */
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        /**
+         * Load students for dropdown
+         */
+        function loadStudents() {
+            fetch('/api/get_students')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const select = document.getElementById('studentFilter');
+                        data.data.forEach(student => {
+                            const option = document.createElement('option');
+                            option.value = student.id;
+                            option.textContent = `${student.roll_number} - ${student.name}`;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+        }
+
+        /**
+         * Load departments for dropdown
+         */
+        function loadDepartments() {
+            fetch('/api/get_departments')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const select = document.getElementById('departmentFilter');
+                        data.data.forEach(dept => {
+                            const option = document.createElement('option');
+                            option.value = dept;
+                            option.textContent = dept;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+        }
+
+        /**
+         * Load attendance data
+         */
+        function loadAttendance() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const studentId = document.getElementById('studentFilter').value;
+            const department = document.getElementById('departmentFilter').value;
+
+            let url = `/api/get_attendance?start_date=${startDate}&end_date=${endDate}`;
+            if (studentId) url += `&student_id=${studentId}`;
+            if (department) url += `&department=${department}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        allRecords = data.data;
+                        applyMethodFilter();
+                        updateStatistics();
+                        displayTable();
+                    } else {
+                        showNoData();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNoData();
+                });
+        }
+
+        /**
+         * Apply method filter (face/fingerprint)
+         */
+        function applyMethodFilter() {
+            const method = document.getElementById('methodFilter').value;
+            
+            if (method) {
+                filteredRecords = allRecords.filter(record => record.method === method);
+            } else {
+                filteredRecords = allRecords;
+            }
+        }
+
+        /**
+         * Apply all filters
+         */
+        function applyFilters() {
+            loadAttendance();
+        }
+
+        /**
+         * Reset all filters
+         */
+        function resetFilters() {
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('startDate').value = formatDate(weekAgo);
+            document.getElementById('endDate').value = formatDate(today);
+            document.getElementById('studentFilter').value = '';
+            document.getElementById('departmentFilter').value = '';
+            document.getElementById('methodFilter').value = '';
+            document.getElementById('searchBox').value = '';
+            
+            loadAttendance();
+        }
+
+        /**
+         * Update statistics cards
+         */
+        function updateStatistics() {
+            document.getElementById('totalRecords').textContent = filteredRecords.length;
+            
+            // Unique students
+            const uniqueStudents = new Set(filteredRecords.map(r => r.roll_number));
+            document.getElementById('uniqueStudents').textContent = uniqueStudents.size;
+            
+            // Count by method
+            const faceCount = filteredRecords.filter(r => r.method === 'face').length;
+            const fingerprintCount = filteredRecords.filter(r => r.method === 'fingerprint').length;
+            
+            document.getElementById('faceCount').textContent = faceCount;
+            document.getElementById('fingerprintCount').textContent = fingerprintCount;
+        }
+
+        /**
+         * Display table with pagination
+         */
+        function displayTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (filteredRecords.length === 0) {
+                showNoData();
+                return;
+            }
+
+            // Calculate pagination
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = Math.min(startIndex + recordsPerPage, filteredRecords.length);
+            const pageRecords = filteredRecords.slice(startIndex, endIndex);
+
+            // Populate table
+            pageRecords.forEach((record, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${startIndex + index + 1}</td>
+                    <td>${record.date}</td>
+                    <td>${record.time}</td>
+                    <td>${record.roll_number}</td>
+                    <td>${record.name}</td>
+                    <td>${record.department}</td>
+                    <td><span class="badge badge-${record.method === 'face' ? 'primary' : 'info'}">${record.method}</span></td>
+                    <td><span class="badge badge-success">${record.status}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update pagination
+            updatePagination();
+        }
+
+        /**
+         * Update pagination controls
+         */
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+            const paginationDiv = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                paginationDiv.innerHTML = '';
+                return;
+            }
+
+            let html = '<button class="btn-page" onclick="changePage(-1)">« Previous</button>';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    html += `<button class="btn-page active">${i}</button>`;
+                } else {
+                    html += `<button class="btn-page" onclick="goToPage(${i})">${i}</button>`;
+                }
+            }
+            
+            html += '<button class="btn-page" onclick="changePage(1)">Next »</button>';
+            
+            paginationDiv.innerHTML = html;
+        }
+
+        /**
+         * Change page
+         */
+        function changePage(delta) {
+            const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+            currentPage = Math.max(1, Math.min(totalPages, currentPage + delta));
+            displayTable();
+        }
+
+        /**
+         * Go to specific page
+         */
+        function goToPage(page) {
+            currentPage = page;
+            displayTable();
+        }
+
+        /**
+         * Search in table
+         */
+        function searchTable() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            
+            if (searchTerm === '') {
+                filteredRecords = allRecords;
+            } else {
+                filteredRecords = allRecords.filter(record => {
+                    return record.roll_number.toLowerCase().includes(searchTerm) ||
+                           record.name.toLowerCase().includes(searchTerm) ||
+                           record.department.toLowerCase().includes(searchTerm);
+                });
+            }
+            
+            currentPage = 1;
+            updateStatistics();
+            displayTable();
+        }
+
+        /**
+         * Sort table by column
+         */
+        function sortTable(columnIndex) {
+            const columns = ['id', 'date', 'time', 'roll_number', 'name', 'department', 'method', 'status'];
+            const column = columns[columnIndex];
+            
+            filteredRecords.sort((a, b) => {
+                if (a[column] < b[column]) return -1;
+                if (a[column] > b[column]) return 1;
+                return 0;
+            });
+            
+            displayTable();
+        }
+
+        /**
+         * Export to Excel
+         */
+        function exportToExcel() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            window.location.href = `/api/export_attendance?start_date=${startDate}&end_date=${endDate}`;
+        }
+
+        /**
+         * Show no data message
+         */
+        function showNoData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '<tr><td colspan="8" class="no-data">No records found</td></tr>';
+            
+            document.getElementById('totalRecords').textContent = '0';
+            document.getElementById('uniqueStudents').textContent = '0';
+            document.getElementById('faceCount').textContent = '0';
+            document.getElementById('fingerprintCount').textContent = '0';
+        }
+    </script>
+</body>
+</html>

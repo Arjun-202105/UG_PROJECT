@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Students</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>🎓 Attendance System</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/register">Register</a></li>
+                <li><a href="/manage_students" class="active">Manage Students</a></li>
+                <li><a href="/view_attendance">View Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>👥 Manage Students</h1>
+            <p>View, edit, and manage all registered students</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalStudents">0</div>
+                    <div class="stat-title">Total Students</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🏢</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalDepartments">0</div>
+                    <div class="stat-title">Departments</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="recentlyAdded">0</div>
+                    <div class="stat-title">Added This Week</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <h3>🔍 Search & Filter</h3>
+            <div class="filters-grid">
+                <div class="filter-item">
+                    <label for="searchBox">Search</label>
+                    <input type="text" id="searchBox" class="form-control" 
+                           placeholder="Search by name or roll number..." 
+                           onkeyup="searchStudents()">
+                </div>
+
+                <div class="filter-item">
+                    <label for="departmentFilter">Department</label>
+                    <select id="departmentFilter" class="form-control" onchange="filterStudents()">
+                        <option value="">All Departments</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label for="sortBy">Sort By</label>
+                    <select id="sortBy" class="form-control" onchange="sortStudents()">
+                        <option value="name">Name (A-Z)</option>
+                        <option value="roll">Roll Number</option>
+                        <option value="date">Registration Date</option>
+                        <option value="department">Department</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" onclick="resetFilters()">
+                        🔄 Reset Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Grid/List -->
+        <div class="students-section">
+            <div class="section-header">
+                <h2>All Students</h2>
+                <div class="view-toggle">
+                    <button class="btn btn-sm" onclick="toggleView('grid')" id="gridViewBtn">
+                        📱 Grid View
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="toggleView('list')" id="listViewBtn">
+                        📋 List View
+                    </button>
+                </div>
+            </div>
+
+            <!-- List View (Default) -->
+            <div id="listView" class="students-list">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Photo</th>
+                            <th>Roll Number</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        <tr>
+                            <td colspan="8" class="no-data">
+                                <div class="loading">Loading students...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Grid View -->
+            <div id="gridView" class="students-grid" style="display: none;">
+                <div id="studentsGridContainer">
+                    <div class="loading">Loading students...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Attendance System | College Project</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // ============================================
+        // MANAGE STUDENTS JAVASCRIPT
+        // ============================================
+
+        let allStudents = [];
+        let filteredStudents = [];
+        let currentView = 'list';
+
+        /**
+         * Load all students on page load
+         */
+        window.addEventListener('DOMContentLoaded', function() {
+            loadStudents();
+            loadDepartments();
+        });
+
+        /**
+         * Load all students from database
+         */
+        function loadStudents() {
+            fetch('/api/get_students')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        allStudents = data.data;
+                        filteredStudents = allStudents;
+                        displayStudents();
+                        updateStatistics();
+                    } else {
+                        showNoData();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNoData();
+                });
+        }
+
+        /**
+         * Load departments for filter
+         */
+        function loadDepartments() {
+            fetch('/api/get_departments')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const select = document.getElementById('departmentFilter');
+                        data.data.forEach(dept => {
+                            const option = document.createElement('option');
+                            option.value = dept;
+                            option.textContent = dept;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+        }
+
+        /**
+         * Display students in current view
+         */
+        function displayStudents() {
+            if (currentView === 'list') {
+                displayListView();
+            } else {
+                displayGridView();
+            }
+        }
+
+        /**
+         * Display students in list view (table)
+         */
+        function displayListView() {
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = '';
+
+            if (filteredStudents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">No students found</td></tr>';
+                return;
+            }
+
+            filteredStudents.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <img src="/${student.photo_path}" alt="${student.name}" 
+                             class="student-thumbnail" 
+                             onerror="this.src='/static/images/default-avatar.png'">
+                    </td>
+                    <td>${student.roll_number}</td>
+                    <td>${student.name}</td>
+                    <td>${student.department}</td>
+                    <td>${student.email || '-'}</td>
+                    <td>${student.phone || '-'}</td>
+                    <td>${new Date(student.registered_date).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editStudent(${student.id})">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="viewStudent(${student.id})">
+                            👁️ View
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        /**
+         * Display students in grid view (cards)
+         */
+        function displayGridView() {
+            const container = document.getElementById('studentsGridContainer');
+            container.innerHTML = '';
+
+            if (filteredStudents.length === 0) {
+                container.innerHTML = '<p class="no-data">No students found</p>';
+                return;
+            }
+
+            filteredStudents.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.innerHTML = `
+                    <div class="student-card-photo">
+                        <img src="/${student.photo_path}" alt="${student.name}"
+                             onerror="this.src='/static/images/default-avatar.png'">
+                    </div>
+                    <div class="student-card-info">
+                        <h3>${student.name}</h3>
+                        <p class="roll-number">${student.roll_number}</p>
+                        <p class="department">${student.department}</p>
+                        <div class="student-card-actions">
+                            <button class="btn btn-sm btn-primary" onclick="editStudent(${student.id})">
+                                ✏️ Edit
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="viewStudent(${student.id})">
+                                👁️ View
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        /**
+         * Toggle between grid and list view
+         */
+        function toggleView(view) {
+            currentView = view;
+            
+            if (view === 'grid') {
+                document.getElementById('listView').style.display = 'none';
+                document.getElementById('gridView').style.display = 'block';
+                document.getElementById('gridViewBtn').classList.add('btn-primary');
+                document.getElementById('listViewBtn').classList.remove('btn-primary');
+            } else {
+                document.getElementById('listView').style.display = 'block';
+                document.getElementById('gridView').style.display = 'none';
+                document.getElementById('listViewBtn').classList.add('btn-primary');
+                document.getElementById('gridViewBtn').classList.remove('btn-primary');
+            }
+            
+            displayStudents();
+        }
+
+        /**
+         * Search students by name or roll number
+         */
+        function searchStudents() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            
+            if (searchTerm === '') {
+                filteredStudents = allStudents;
+            } else {
+                filteredStudents = allStudents.filter(student => {
+                    return student.name.toLowerCase().includes(searchTerm) ||
+                           student.roll_number.toLowerCase().includes(searchTerm);
+                });
+            }
+            
+            displayStudents();
+        }
+
+        /**
+         * Filter students by department
+         */
+        function filterStudents() {
+            const department = document.getElementById('departmentFilter').value;
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            
+            filteredStudents = allStudents;
+            
+            // Apply department filter
+            if (department) {
+                filteredStudents = filteredStudents.filter(s => s.department === department);
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredStudents = filteredStudents.filter(s => {
+                    return s.name.toLowerCase().includes(searchTerm) ||
+                           s.roll_number.toLowerCase().includes(searchTerm);
+                });
+            }
+            
+            displayStudents();
+        }
+
+        /**
+         * Sort students
+         */
+        function sortStudents() {
+            const sortBy = document.getElementById('sortBy').value;
+            
+            filteredStudents.sort((a, b) => {
+                switch(sortBy) {
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'roll':
+                        return a.roll_number.localeCompare(b.roll_number);
+                    case 'date':
+                        return new Date(b.registered_date) - new Date(a.registered_date);
+                    case 'department':
+                        return a.department.localeCompare(b.department);
+                    default:
+                        return 0;
+                }
+            });
+            
+            displayStudents();
+        }
+
+        /**
+         * Reset all filters
+         */
+        function resetFilters() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('departmentFilter').value = '';
+            document.getElementById('sortBy').value = 'name';
+            filteredStudents = allStudents;
+            displayStudents();
+        }
+
+        /**
+         * Update statistics
+         */
+        function updateStatistics() {
+            // Total students
+            document.getElementById('totalStudents').textContent = allStudents.length;
+            
+            // Total departments
+            const departments = new Set(allStudents.map(s => s.department));
+            document.getElementById('totalDepartments').textContent = departments.size;
+            
+            // Recently added (last 7 days)
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const recent = allStudents.filter(s => new Date(s.registered_date) > weekAgo);
+            document.getElementById('recentlyAdded').textContent = recent.length;
+        }
+
+        /**
+         * Edit student - redirect to edit page
+         */
+        function editStudent(studentId) {
+            window.location.href = `/edit_student?id=${studentId}`;
+        }
+
+        /**
+         * View student details
+         */
+        function viewStudent(studentId) {
+            const student = allStudents.find(s => s.id === studentId);
+            
+            if (student) {
+                alert(`
+Student Details:
+
+Roll Number: ${student.roll_number}
+Name: ${student.name}
+Department: ${student.department}
+Email: ${student.email || 'Not provided'}
+Phone: ${student.phone || 'Not provided'}
+Registered: ${new Date(student.registered_date).toLocaleString()}
+                `.trim());
+            }
+        }
+
+        /**
+         * Show no data message
+         */
+        function showNoData() {
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" class="no-data">No students registered yet</td></tr>';
+        }
+    </script>
+
+    <style>
+        .students-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .student-thumbnail {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+        }
+
+        /* Grid View Styles */
+        .students-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            padding: 20px 0;
+        }
+
+        .student-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
+        }
+
+        .student-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .student-card-photo img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid #667eea;
+            margin-bottom: 15px;
+        }
+
+        .student-card-info h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .student-card-info .roll-number {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .student-card-info .department {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .student-card-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .students-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+    </style>
+</body>
+</html>

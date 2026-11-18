@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h2>🎓 Attendance System</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/register">Register</a></li>
+                <li><a href="/view_attendance">View Attendance</a></li>
+                <li><a href="/reports">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>📸 Face Recognition Attendance</h1>
+            <p>Look at the camera to mark your attendance</p>
+        </div>
+
+        <div class="attendance-container">
+            
+            <!-- Camera Section -->
+            <div class="camera-section">
+                <div class="camera-box">
+                    <video id="video" autoplay></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    
+                    <!-- Overlay for face detection -->
+                    <div id="faceOverlay" class="face-overlay">
+                        <div class="face-guide">
+                            <div class="guide-text">Position your face here</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera Controls -->
+                <div class="camera-controls">
+                    <button class="btn btn-primary btn-large" onclick="startCamera()">
+                        📷 Start Camera
+                    </button>
+                    <button class="btn btn-success btn-large" onclick="markAttendance()">
+                        ✅ Mark Attendance
+                    </button>
+                    <button class="btn btn-secondary" onclick="stopCamera()">
+                        ⏹️ Stop Camera
+                    </button>
+                </div>
+
+                <div id="status" class="status-message"></div>
+            </div>
+
+            <!-- Attendance Info Section -->
+            <div class="info-section">
+                <div class="info-card">
+                    <h3>📋 Today's Attendance</h3>
+                    <div id="todayCount" class="attendance-count">0</div>
+                    <p>Students Present</p>
+                </div>
+
+                <div class="info-card">
+                    <h3>⏰ Current Time</h3>
+                    <div id="currentTime" class="time-display">--:--:--</div>
+                    <div id="currentDate" class="date-display"></div>
+                </div>
+
+                <div class="info-card">
+                    <h3>ℹ️ Instructions</h3>
+                    <ul class="instruction-list">
+                        <li>Click "Start Camera" to begin</li>
+                        <li>Position your face in the frame</li>
+                        <li>Ensure good lighting</li>
+                        <li>Look directly at camera</li>
+                        <li>Click "Mark Attendance"</li>
+                        <li>Wait for confirmation</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Recent Attendance Table -->
+        <div class="recent-attendance">
+            <h2>Recently Marked Attendance</h2>
+            <table id="recentTable" class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Roll Number</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="recentTableBody">
+                    <tr>
+                        <td colspan="4" class="no-data">No attendance marked yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Attendance System | College Project</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // ============================================
+        // FACE ATTENDANCE JAVASCRIPT
+        // ============================================
+
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let stream = null;
+        let recentAttendance = [];
+
+        /**
+         * Start camera for face detection
+         */
+        function startCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'  // Use front camera
+                    } 
+                })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                    showStatus('✅ Camera started! Position your face and mark attendance.', 'success');
+                })
+                .catch(function(error) {
+                    console.error('Camera error:', error);
+                    showStatus('❌ Error accessing camera. Please allow camera permission.', 'error');
+                });
+            } else {
+                showStatus('❌ Your browser does not support camera access.', 'error');
+            }
+        }
+
+        /**
+         * Stop camera
+         */
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                showStatus('⏹️ Camera stopped.', 'info');
+            }
+        }
+
+        /**
+         * Mark attendance using face recognition
+         */
+        function markAttendance() {
+            if (!stream) {
+                showStatus('⚠️ Please start camera first!', 'error');
+                return;
+            }
+
+            showStatus('⏳ Processing... Please wait...', 'info');
+
+            // Capture current frame
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert to base64
+            const photoData = canvas.toDataURL('image/jpeg');
+
+            // Send to backend for face recognition
+            fetch('/api/mark_face_attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    photo: photoData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Success - attendance marked
+                    showStatus('✅ ' + data.message, 'success');
+                    
+                    // Add to recent attendance
+                    addToRecentTable(data.student, data.time);
+                    
+                    // Update today's count
+                    updateTodayCount();
+                    
+                    // Play success sound (optional)
+                    playSound('success');
+                } else {
+                    // Failed - face not recognized or already marked
+                    showStatus('❌ ' + data.message, 'error');
+                    playSound('error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showStatus('❌ Error marking attendance. Please try again.', 'error');
+            });
+        }
+
+        /**
+         * Show status message
+         */
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = 'status-message status-' + type;
+            statusElement.style.display = 'block';
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+
+        /**
+         * Add attendance to recent table
+         */
+        function addToRecentTable(student, time) {
+            const tbody = document.getElementById('recentTableBody');
+            
+            // Remove "no data" row if exists
+            const noDataRow = tbody.querySelector('.no-data');
+            if (noDataRow) {
+                noDataRow.parentElement.remove();
+            }
+
+            // Create new row
+            const row = document.createElement('tr');
+            row.className = 'fade-in';
+            row.innerHTML = `
+                <td>${time}</td>
+                <td>${student.roll_number}</td>
+                <td>${student.name}</td>
+                <td><span class="badge badge-success">Present</span></td>
+            `;
+
+            // Add to top of table
+            tbody.insertBefore(row, tbody.firstChild);
+
+            // Keep only last 10 records
+            while (tbody.children.length > 10) {
+                tbody.removeChild(tbody.lastChild);
+            }
+        }
+
+        /**
+         * Update today's attendance count
+         */
+        function updateTodayCount() {
+            const today = new Date().toISOString().split('T')[0];
+            fetch(`/api/get_attendance?start_date=${today}&end_date=${today}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('todayCount').textContent = data.data.length;
+                    }
+                });
+        }
+
+        /**
+         * Play sound effect (optional)
+         */
+        function playSound(type) {
+            // You can add sound files in static folder and play them
+            // const audio = new Audio(`/static/sounds/${type}.mp3`);
+            // audio.play();
+        }
+
+        /**
+         * Update clock display
+         */
+        function updateClock() {
+            const now = new Date();
+            
+            // Format time (HH:MM:SS)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            
+            // Format date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateString = now.toLocaleDateString('en-US', options);
+
+            document.getElementById('currentTime').textContent = timeString;
+            document.getElementById('currentDate').textContent = dateString;
+        }
+
+        /**
+         * Load recent attendance on page load
+         */
+        function loadRecentAttendance() {
+            const today = new Date().toISOString().split('T')[0];
+            fetch(`/api/get_attendance?start_date=${today}&end_date=${today}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        const tbody = document.getElementById('recentTableBody');
+                        tbody.innerHTML = '';
+                        
+                        // Show last 10 records
+                        data.data.slice(0, 10).forEach(record => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${record.time}</td>
+                                <td>${record.roll_number}</td>
+                                <td>${record.name}</td>
+                                <td><span class="badge badge-success">Present</span></td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    }
+                });
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        // Update clock every second
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Load data when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            updateTodayCount();
+            loadRecentAttendance();
+        });
+
+        // Stop camera when page is closed
+        window.addEventListener('beforeunload', function() {
+            stopCamera();
+        });
+
+        // Auto-refresh attendance every 30 seconds
+        setInterval(function() {
+            loadRecentAttendance();
+            updateTodayCount();
+        }, 30000);
+    </script>
+</body>
+</html>
